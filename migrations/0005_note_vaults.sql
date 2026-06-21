@@ -1,0 +1,1 @@
+-- MemoNote no-op migration reserved for future schema changes.

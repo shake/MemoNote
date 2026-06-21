@@ -1,0 +1,42 @@
+{
+  "name": "memonote",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc --noEmit",
+    "gen:password": "node scripts/generate-password.mjs",
+    "deploy": "npm run db:migrations:apply && wrangler deploy",
+    "dev": "wrangler dev",
+    "dev:local": "wrangler dev --ip 127.0.0.1 --port 8787 --inspector-port 0 --show-interactive-dev-session=false",
+    "start": "wrangler dev",
+    "test": "vitest",
+    "cf-typegen": "wrangler types",
+    "db:migrations:apply": "wrangler d1 migrations apply DB --remote"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.12.4",
+    "@types/node": "^25.6.0",
+    "typescript": "^5.5.2",
+    "vitest": "~3.2.0",
+    "wrangler": "^4.82.2"
+  },
+  "cloudflare": {
+    "bindings": {
+      "DB": {
+        "description": "D1 database used to store notes, tags, attachments, and auth rate-limit records."
+      },
+      "ATTACHMENTS": {
+        "description": "R2 bucket used to store note attachments."
+      },
+      "ADMIN_USERNAME": {
+        "description": "Single-user login name. Defaults to admin."
+      },
+      "ADMIN_PASSWORD": {
+        "description": "Single-user login password. Use a strong random value in production."
+      },
+      "COOKIE_SECRET": {
+        "description": "Long random secret used to sign the HttpOnly session cookie."
+      }
+    }
+  }
+}

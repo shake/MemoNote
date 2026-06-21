@@ -465,10 +465,14 @@ export const memoNoteHtml = `<!doctype html>
         overflow: hidden;
         background: var(--surface-strong);
       }
+      .gallery-card .attachment-thumb {
+        aspect-ratio: 16 / 10;
+        max-height: 180px;
+      }
       .attachment-thumb img {
         display: block;
         width: 100%;
-        height: 180px;
+        height: 100%;
         object-fit: cover;
       }
       .attachment-file {
@@ -1337,6 +1341,7 @@ export const memoNoteHtml = `<!doctype html>
         const query = state.query.trim();
         const card = document.createElement('article');
         card.className = 'note-card';
+        if (mode === 'gallery') card.classList.add('gallery-card');
         if (query) card.classList.add('search-hit');
         card.dataset.id = note.id;
         const inner = document.createElement('div');

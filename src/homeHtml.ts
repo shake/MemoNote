@@ -1184,44 +1184,55 @@ export const memoNoteHtml = `<!doctype html>
             continue;
           }
 
-          const headingMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
-          if (headingMatch) {
+          if (trimmed.startsWith('#')) {
+            let level = 0;
+            while (level < trimmed.length && trimmed[level] === '#' && level < 6) level++;
+            if (level > 0 && trimmed[level] === ' ') {
+              flushParagraph();
+              flushList();
+              blocks.push('<h' + level + '>' + renderMarkdownInline(trimmed.slice(level + 1)) + '</h' + level + '>');
+              continue;
+            }
+          }
+
+          if (trimmed.startsWith('>') && trimmed[1] === ' ') {
             flushParagraph();
             flushList();
-            const level = headingMatch[1].length;
-            blocks.push('<h' + level + '>' + renderMarkdownInline(headingMatch[2]) + '</h' + level + '>');
+            blocks.push('<blockquote><p>' + renderMarkdownInline(trimmed.slice(2)) + '</p></blockquote>');
             continue;
           }
 
-          const quoteMatch = trimmed.match(/^>\s?(.*)$/);
-          if (quoteMatch) {
-            flushParagraph();
-            flushList();
-            blocks.push('<blockquote><p>' + renderMarkdownInline(quoteMatch[1]) + '</p></blockquote>');
-            continue;
-          }
-
-          const unorderedMatch = trimmed.match(/^[-*+]\s+(.*)$/);
-          if (unorderedMatch) {
+          if (trimmed.length > 2 && '-*+'.includes(trimmed[0]) && trimmed[1] === ' ') {
             flushParagraph();
             if (listType !== 'ul') {
               flushList();
               blocks.push('<ul>');
               listType = 'ul';
             }
-            blocks.push('<li>' + renderMarkdownInline(unorderedMatch[1]) + '</li>');
+            blocks.push('<li>' + renderMarkdownInline(trimmed.slice(2)) + '</li>');
             continue;
           }
 
-          const orderedMatch = trimmed.match(/^\d+\.\s+(.*)$/);
-          if (orderedMatch) {
+          let dotIndex = -1;
+          let digitsOnly = true;
+          for (let i = 0; i < trimmed.length; i += 1) {
+            const char = trimmed[i];
+            if (char >= '0' && char <= '9') continue;
+            if (char === '.' && i > 0 && trimmed[i + 1] === ' ') {
+              dotIndex = i;
+            } else {
+              digitsOnly = false;
+            }
+            break;
+          }
+          if (digitsOnly && dotIndex > 0) {
             flushParagraph();
             if (listType !== 'ol') {
               flushList();
               blocks.push('<ol>');
               listType = 'ol';
             }
-            blocks.push('<li>' + renderMarkdownInline(orderedMatch[1]) + '</li>');
+            blocks.push('<li>' + renderMarkdownInline(trimmed.slice(dotIndex + 2)) + '</li>');
             continue;
           }
 

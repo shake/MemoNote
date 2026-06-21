@@ -127,11 +127,11 @@ export const memoNoteHtml = `<!doctype html>
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
       }
-      .recent-notes {
+      .pinned-notes {
         display: grid;
         gap: 8px;
       }
-      .recent-note {
+      .pinned-note {
         display: grid;
         gap: 4px;
         padding: 10px 12px;
@@ -140,18 +140,18 @@ export const memoNoteHtml = `<!doctype html>
         background: var(--surface-strong);
         text-align: left;
       }
-      .recent-note:hover {
+      .pinned-note:hover {
         background: var(--surface-soft);
       }
-      .recent-note-title {
+      .pinned-note-title {
         font-weight: 700;
         line-height: 1.25;
       }
-      .recent-note-meta {
+      .pinned-note-meta {
         color: var(--muted);
         font-size: 12px;
       }
-      .recent-note-empty {
+      .pinned-note-empty {
         color: var(--muted);
         font-size: 12px;
         padding: 10px 12px;
@@ -338,6 +338,30 @@ export const memoNoteHtml = `<!doctype html>
         gap: 10px;
         color: var(--muted);
         font-size: 12px;
+      }
+      .note-meta-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+      .pin-btn {
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: color-mix(in srgb, var(--muted) 80%, var(--text));
+        flex: 0 0 auto;
+      }
+      .pin-btn:hover {
+        background: var(--surface-soft);
+      }
+      .pin-btn.active {
+        color: var(--accent-strong);
+        background: rgba(244, 211, 110, 0.18);
+        border-color: rgba(244, 211, 110, 0.24);
       }
       .note-title {
         margin: 0;
@@ -804,8 +828,8 @@ export const memoNoteHtml = `<!doctype html>
           </div>
 
           <div class="sidebar-section">
-            <div class="sidebar-label">最近更新</div>
-            <div id="recentNotes" class="recent-notes"></div>
+            <div class="sidebar-label">Pin</div>
+            <div id="pinnedNotes" class="pinned-notes"></div>
           </div>
 
           <div class="sidebar-section">
@@ -924,7 +948,7 @@ export const memoNoteHtml = `<!doctype html>
         accountLabel: document.getElementById('accountLabel'),
         newBtn: document.getElementById('newBtn'),
         sidebarToggleBtn: document.getElementById('sidebarToggleBtn'),
-        recentNotes: document.getElementById('recentNotes'),
+        pinnedNotes: document.getElementById('pinnedNotes'),
         tagList: document.getElementById('tagList'),
         refreshBtn: document.getElementById('refreshBtn'),
         storageStatus: document.getElementById('storageStatus'),
@@ -1134,7 +1158,24 @@ export const memoNoteHtml = `<!doctype html>
 
         const meta = document.createElement('div');
         meta.className = 'note-meta';
-        meta.innerHTML = '<span>' + formatDate(note.updated_at) + '</span><span>' + (note.content || '').replace(/\\s+/g, '').length + ' 字</span>';
+        meta.innerHTML =
+          '<div class="note-meta-left"><span>' +
+          formatDate(note.updated_at) +
+          '</span><span>' +
+          (note.content || '').replace(/\\s+/g, '').length +
+          ' 字</span></div>' +
+          '<button type="button" class="pin-btn' +
+          (note.pinned_at ? ' active' : '') +
+          '" aria-label="' +
+          (note.pinned_at ? '取消置顶' : '置顶') +
+          '" title="' +
+          (note.pinned_at ? '取消置顶' : '置顶') +
+          '" data-pin-button="1">📌</button>';
+        const pinBtn = meta.querySelector('[data-pin-button="1"]');
+        pinBtn?.addEventListener('click', (event) => {
+          event.stopPropagation();
+          togglePin(note.id).catch((error) => setStatus(error.message || '置顶失败'));
+        });
 
         const title = document.createElement('h3');
         title.className = 'note-title';
@@ -1191,6 +1232,32 @@ export const memoNoteHtml = `<!doctype html>
         return card;
       }
 
+      function renderPinnedNotes() {
+        if (!els.pinnedNotes) return;
+        const pinned = [...state.notes]
+          .filter((note) => Boolean(note.pinned_at))
+          .sort((a, b) => (b.pinned_at || 0) - (a.pinned_at || 0) || (b.updated_at || 0) - (a.updated_at || 0));
+        if (!pinned.length) {
+          els.pinnedNotes.innerHTML = '<div class="pinned-note-empty">还没有置顶笔记。</div>';
+          return;
+        }
+        els.pinnedNotes.innerHTML = pinned.map((note) =>
+          '<button type="button" class="pinned-note" data-note-id="' +
+            note.id +
+            '">' +
+            '<div class="pinned-note-title">' +
+            escapeHtml(note.title || '无标题') +
+            '</div>' +
+            '<div class="pinned-note-meta">' +
+            formatDate(note.updated_at) +
+            '</div>' +
+          '</button>'
+        ).join('');
+        els.pinnedNotes.querySelectorAll('[data-note-id]').forEach((button) => {
+          button.addEventListener('click', () => openEditor(button.getAttribute('data-note-id') || ''));
+        });
+      }
+
       function renderTags() {
         const tags = collectTags(state.notes);
         const items = [
@@ -1205,24 +1272,20 @@ export const memoNoteHtml = `<!doctype html>
         });
       }
 
-      function renderRecentNotes() {
-        if (!els.recentNotes) return;
-        const recent = [...state.notes]
-          .sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0))
-          .slice(0, 5);
-        if (!recent.length) {
-          els.recentNotes.innerHTML = '<div class="recent-note-empty">还没有最近更新的笔记。</div>';
-          return;
+      async function togglePin(noteId) {
+        const response = await api('/api/notes/' + encodeURIComponent(noteId) + '/pin', { method: 'POST' });
+        const index = state.notes.findIndex((item) => item.id === noteId);
+        if (index >= 0) {
+          state.notes[index] = response.note;
         }
-        els.recentNotes.innerHTML = recent.map((note) => \`
-          <button type="button" class="recent-note" data-note-id="\${note.id}">
-            <div class="recent-note-title">\${escapeHtml(note.title || '无标题')}</div>
-            <div class="recent-note-meta">\${formatDate(note.updated_at)} · \${(note.tags || []).length} 个标签 · \${(note.attachments || []).length} 个附件</div>
-          </button>
-        \`).join('');
-        els.recentNotes.querySelectorAll('[data-note-id]').forEach((button) => {
-          button.addEventListener('click', () => openEditor(button.getAttribute('data-note-id') || ''));
-        });
+        filterNotes();
+        renderAll();
+        if (state.editing?.note?.id === noteId) {
+          state.editing.note = structuredClone(response.note);
+          renderAttachmentSection();
+          previewEditor();
+        }
+        setStatus(response.note?.pinned_at ? '已置顶' : '已取消置顶');
       }
 
       function closeNoteMenu() {
@@ -1290,7 +1353,7 @@ export const memoNoteHtml = `<!doctype html>
       }
 
       function renderNotes() {
-        renderRecentNotes();
+        renderPinnedNotes();
         renderTags();
         const query = state.query.trim();
         if (state.loading) {

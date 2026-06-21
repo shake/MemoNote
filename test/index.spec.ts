@@ -58,6 +58,7 @@ type NoteRow = {
 	tags: string;
 	created_at: number;
 	updated_at: number;
+	pinned_at: number;
 };
 
 type AttachmentRow = {
@@ -148,7 +149,16 @@ class MockStatement {
 
 		if (sql.startsWith('insert into notes')) {
 			const [id, title, content, tags, createdAt, updatedAt] = this.params as [string, string, string, string, number, number];
-			this.db.notes.set(id, { id, title, content, tags, created_at: createdAt, updated_at: updatedAt });
+			this.db.notes.set(id, { id, title, content, tags, created_at: createdAt, updated_at: updatedAt, pinned_at: 0 });
+			return [];
+		}
+
+		if (sql.startsWith('update notes set pinned_at = ? where id = ?')) {
+			const [pinnedAt, id] = this.params as [number, string];
+			const existing = this.db.notes.get(id);
+			if (existing) {
+				this.db.notes.set(id, { ...existing, pinned_at: pinnedAt });
+			}
 			return [];
 		}
 
@@ -423,5 +433,40 @@ describe('memonote worker', () => {
 			headers: { cookie },
 		});
 		expect(missingAttachment.response.status).toBe(404);
+	});
+
+	it('pins and unpins a note', async () => {
+		const cookie = await login();
+		const created = await fetchJson('http://example.com/api/notes', {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/json',
+				cookie,
+			},
+			body: JSON.stringify({
+				title: '置顶测试',
+				content: '内容',
+				tags: [],
+			}),
+		});
+		expect(created.response.status).toBe(201);
+		const createdData = created.json as { note: { id: string; pinned_at: number } };
+		expect(createdData.note.pinned_at).toBe(0);
+
+		const pinned = await fetchJson(`http://example.com/api/notes/${createdData.note.id}/pin`, {
+			method: 'POST',
+			headers: { cookie },
+		});
+		expect(pinned.response.status).toBe(200);
+		const pinnedData = pinned.json as { note: { pinned_at: number } };
+		expect(pinnedData.note.pinned_at).toBeGreaterThan(0);
+
+		const unpinned = await fetchJson(`http://example.com/api/notes/${createdData.note.id}/pin`, {
+			method: 'POST',
+			headers: { cookie },
+		});
+		expect(unpinned.response.status).toBe(200);
+		const unpinnedData = unpinned.json as { note: { pinned_at: number } };
+		expect(unpinnedData.note.pinned_at).toBe(0);
 	});
 });

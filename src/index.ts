@@ -28,6 +28,7 @@ import {
 	listNotes,
 	normalizeTags,
 	readStoredAttachment,
+	setNotePinState,
 	updateNote,
 } from './storage';
 
@@ -347,6 +348,20 @@ export default {
 				await deleteNote(env, id);
 				return json({ ok: true });
 			}
+		}
+
+		if (url.pathname.startsWith('/api/notes/') && url.pathname.endsWith('/pin') && request.method === 'POST') {
+			const noteId = decodeURIComponent(
+				url.pathname.slice('/api/notes/'.length, url.pathname.length - '/pin'.length)
+			);
+			if (!noteId) return json({ ok: false, error: 'missing note id' }, 400);
+
+			const note = await getNote(env, noteId);
+			if (!note) return notFound();
+
+			const pinnedAt = note.pinned_at ? 0 : Date.now();
+			const updated = await setNotePinState(env, noteId, pinnedAt);
+			return json({ ok: true, note: updated });
 		}
 
 		if (url.pathname.startsWith('/api/attachments/')) {

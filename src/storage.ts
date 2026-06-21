@@ -19,6 +19,7 @@ export type NoteRecord = {
 	tags: string[];
 	created_at: number;
 	updated_at: number;
+	pinned_at: number;
 	attachments: AttachmentRecord[];
 };
 
@@ -29,6 +30,7 @@ type NoteRow = {
 	tags: string | null;
 	created_at: number;
 	updated_at: number;
+	pinned_at: number;
 };
 
 type AttachmentRow = AttachmentRecord;
@@ -131,13 +133,19 @@ export async function ensureSchema(env: StorageEnv) {
 			content TEXT NOT NULL,
 			tags TEXT NOT NULL DEFAULT '[]',
 			created_at INTEGER NOT NULL,
-			updated_at INTEGER NOT NULL
+			updated_at INTEGER NOT NULL,
+			pinned_at INTEGER NOT NULL DEFAULT 0
 		)`
 	).run();
 
 	await env.DB.prepare(
 		`CREATE INDEX IF NOT EXISTS idx_notes_updated_at
 		 ON notes(updated_at DESC)`
+	).run();
+
+	await env.DB.prepare(
+		`CREATE INDEX IF NOT EXISTS idx_notes_pinned_at
+		 ON notes(pinned_at DESC, updated_at DESC)`
 	).run();
 
 	await env.DB.prepare(
@@ -195,13 +203,14 @@ function mapNotes(rows: NoteRow[], attachments: AttachmentRow[]) {
 		tags: parseTags(row.tags),
 		created_at: row.created_at,
 		updated_at: row.updated_at,
+		pinned_at: row.pinned_at || 0,
 		attachments: attachmentsByNote.get(row.id) || [],
 	}));
 }
 
 export async function listNotes(env: StorageEnv) {
 	const notes = await env.DB.prepare(
-		`SELECT id, title, content, tags, created_at, updated_at
+		`SELECT id, title, content, tags, created_at, updated_at, pinned_at
 		 FROM notes
 		 ORDER BY updated_at DESC`
 	).all<NoteRow>();
@@ -217,7 +226,7 @@ export async function listNotes(env: StorageEnv) {
 
 export async function getNote(env: StorageEnv, id: string) {
 	const note = await env.DB.prepare(
-		`SELECT id, title, content, tags, created_at, updated_at
+		`SELECT id, title, content, tags, created_at, updated_at, pinned_at
 		 FROM notes
 		 WHERE id = ?
 		 LIMIT 1`
@@ -233,6 +242,18 @@ export async function getNote(env: StorageEnv, id: string) {
 	).bind(id).all<AttachmentRow>();
 
 	return mapNotes([note], attachments.results ?? [])[0] || null;
+}
+
+export async function setNotePinState(env: StorageEnv, noteId: string, pinnedAt: number) {
+	await env.DB.prepare(
+		`UPDATE notes
+		 SET pinned_at = ?
+		 WHERE id = ?`
+	)
+		.bind(pinnedAt, noteId)
+		.run();
+
+	return getNote(env, noteId);
 }
 
 export async function createNote(

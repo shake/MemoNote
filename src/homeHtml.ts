@@ -1123,19 +1123,19 @@ export const memoNoteHtml = `<!doctype html>
         }
 
         output = output.replace(/\x60([^\x60]+)\x60/g, (_, code) => hold('<code>' + code + '</code>'));
-        output = output.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, label, href) => {
+        output = output.replace(/\\[([^\\]]+)\\]\\((https?:\\/\\/[^\\s)]+)\\)/g, (_, label, href) => {
           return hold('<a href="' + escapeHtml(href) + '" target="_blank" rel="noreferrer">' + label + '</a>');
         });
-        output = output.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        output = output.replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>');
         output = output.replace(/__(.+?)__/g, '<strong>$1</strong>');
-        output = output.replace(/(^|[^*])\*(?!\s)([^*]+?)\*(?!\*)/g, '$1<em>$2</em>');
-        output = output.replace(/(^|[^_])_(?!\s)([^_]+?)_(?!_)/g, '$1<em>$2</em>');
+        output = output.replace(/(^|[^*])\\*(?!\\s)([^*]+?)\\*(?!\\*)/g, '$1<em>$2</em>');
+        output = output.replace(/(^|[^_])_(?!\\s)([^_]+?)_(?!_)/g, '$1<em>$2</em>');
 
-        return output.replace(/\u0000(\d+)\u0000/g, (_, index) => stash[Number(index)] || '');
+        return output.replace(/\\u0000(\\d+)\\u0000/g, (_, index) => stash[Number(index)] || '');
       }
 
       function renderMarkdownHtml(text) {
-        const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
+        const lines = String(text || '').replace(/\\r\\n/g, '\\n').split('\\n');
         const codeFence = '\x60\x60\x60';
         const blocks = [];
         let paragraph = [];
@@ -1156,7 +1156,7 @@ export const memoNoteHtml = `<!doctype html>
 
         function flushCode() {
           if (codeLines === null) return;
-          blocks.push('<pre><code>' + escapeHtml(codeLines.join('\n')) + '</code></pre>');
+          blocks.push('<pre><code>' + escapeHtml(codeLines.join('\\n')) + '</code></pre>');
           codeLines = null;
         }
 

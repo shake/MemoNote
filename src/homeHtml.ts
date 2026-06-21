@@ -675,6 +675,7 @@ export const memoNoteHtml = `<!doctype html>
       .editor-grid {
         display: grid;
         gap: 12px;
+        grid-template-columns: 1fr;
       }
       .editor-toolbar {
         display: flex;
@@ -715,24 +716,12 @@ export const memoNoteHtml = `<!doctype html>
         text-decoration: none;
         font-weight: 700;
       }
-      .editor-grid.two {
-        grid-template-columns: 1fr 320px;
+      .editor-grid.preview-open {
+        grid-template-columns: minmax(0, 1fr) 320px;
       }
       .editor-panel {
         display: grid;
         gap: 10px;
-      }
-      .editor-note-list {
-        padding: 0;
-        margin: 0;
-        list-style: none;
-        display: grid;
-        gap: 8px;
-      }
-      .editor-note-list li {
-        padding: 8px 10px;
-        border-radius: 10px;
-        background: var(--surface-soft);
       }
       .theme-pills, .view-pills {
         display: flex;
@@ -773,7 +762,7 @@ export const memoNoteHtml = `<!doctype html>
           width: 100%;
         }
         .search { width: 100%; }
-        .editor-grid.two { grid-template-columns: 1fr; }
+        .editor-grid.preview-open { grid-template-columns: 1fr; }
       }
       @media (max-width: 640px) {
         .main { padding: 10px; }
@@ -874,10 +863,13 @@ export const memoNoteHtml = `<!doctype html>
             <h2 id="editorTitle" class="section-title">新建笔记</h2>
             <div id="editorHint" class="section-desc">内容会自动保存，保存后可以继续上传图片、PDF 和 Office 文件。</div>
           </div>
-          <button id="closeEditorBtn" class="btn secondary">关闭</button>
+          <div class="topbar-right">
+            <button id="previewToggleBtn" class="btn secondary">预览</button>
+            <button id="closeEditorBtn" class="btn secondary">关闭</button>
+          </div>
         </div>
 
-        <div class="editor-grid two">
+        <div id="editorGrid" class="editor-grid">
           <div class="editor-panel">
             <input id="noteTitleInput" class="input" placeholder="标题" />
             <textarea id="noteContentInput" class="textarea" placeholder="今天记点什么"></textarea>
@@ -894,7 +886,7 @@ export const memoNoteHtml = `<!doctype html>
             <div id="attachmentSection" class="attachment-list"></div>
           </div>
 
-          <div class="editor-panel">
+          <div id="editorPreviewPanel" class="editor-panel hidden">
             <div class="sidebar-label">预览</div>
             <div id="previewPanel" class="note-card">
               <div class="note-card-inner">
@@ -905,11 +897,6 @@ export const memoNoteHtml = `<!doctype html>
                 <div id="previewAttachments" class="attachment-row"></div>
               </div>
             </div>
-            <ul class="editor-note-list">
-              <li>图片会直接显示在卡片里。</li>
-              <li>PDF 和 Office 文件仅提供下载。</li>
-              <li>删除笔记时会同步删掉附件。</li>
-            </ul>
           </div>
         </div>
       </div>
@@ -962,6 +949,9 @@ export const memoNoteHtml = `<!doctype html>
         editorTitle: document.getElementById('editorTitle'),
         editorHint: document.getElementById('editorHint'),
         closeEditorBtn: document.getElementById('closeEditorBtn'),
+        previewToggleBtn: document.getElementById('previewToggleBtn'),
+        editorGrid: document.getElementById('editorGrid'),
+        editorPreviewPanel: document.getElementById('editorPreviewPanel'),
         deleteNoteBtn: document.getElementById('deleteNoteBtn'),
         noteTitleInput: document.getElementById('noteTitleInput'),
         noteContentInput: document.getElementById('noteContentInput'),
@@ -998,6 +988,14 @@ export const memoNoteHtml = `<!doctype html>
         els.appShell.querySelector('.shell')?.classList.toggle('sidebar-collapsed', state.sidebarCollapsed);
         els.sidebarToggleBtn.textContent = state.sidebarCollapsed ? '›' : '‹';
         els.sidebarToggleBtn.setAttribute('aria-label', state.sidebarCollapsed ? '显示左侧栏' : '隐藏左侧栏');
+      }
+
+      function setEditorPreviewVisible(visible) {
+        if (!els.editorGrid || !els.editorPreviewPanel || !els.previewToggleBtn) return;
+        els.editorGrid.classList.toggle('preview-open', visible);
+        els.editorPreviewPanel.classList.toggle('hidden', !visible);
+        els.previewToggleBtn.textContent = visible ? '隐藏预览' : '预览';
+        els.previewToggleBtn.setAttribute('aria-pressed', visible ? 'true' : 'false');
       }
 
       function setActiveTag(tag) {
@@ -1283,7 +1281,7 @@ export const memoNoteHtml = `<!doctype html>
         if (state.editing?.note?.id === noteId) {
           state.editing.note = structuredClone(response.note);
           renderAttachmentSection();
-          previewEditor();
+          if (!els.editorPreviewPanel?.classList.contains('hidden')) previewEditor();
         }
         setStatus(response.note?.pinned_at ? '已置顶' : '已取消置顶');
       }
@@ -1485,6 +1483,7 @@ export const memoNoteHtml = `<!doctype html>
         state.uploadQueue = [];
         els.attachmentInput.value = '';
         renderAttachmentSection();
+        setEditorPreviewVisible(false);
         previewEditor();
         els.editorView.classList.remove('hidden');
         setTimeout(() => els.noteTitleInput.focus(), 0);
@@ -1492,6 +1491,7 @@ export const memoNoteHtml = `<!doctype html>
 
       function closeEditor() {
         clearAutosaveTimer();
+        setEditorPreviewVisible(false);
         els.editorView.classList.add('hidden');
         state.editing = null;
         state.lastSavedEditorSignature = '';
@@ -1534,7 +1534,7 @@ export const memoNoteHtml = `<!doctype html>
           els.noteContentInput.value = data.note.content || '';
           els.noteTagsInput.value = (data.note.tags || []).join(', ');
           renderAttachmentSection();
-          previewEditor();
+          if (!els.editorPreviewPanel?.classList.contains('hidden')) previewEditor();
         }
       }
 
@@ -1560,13 +1560,13 @@ export const memoNoteHtml = `<!doctype html>
           els.deleteNoteBtn.disabled = false;
           await loadNotes();
           renderAttachmentSection();
-          previewEditor();
+          if (!els.editorPreviewPanel?.classList.contains('hidden')) previewEditor();
           setStatus(source === 'autosave' ? '已自动保存' : '已创建');
         } else {
           state.editing.note = response.note;
           await loadNotes();
           renderAttachmentSection();
-          previewEditor();
+          if (!els.editorPreviewPanel?.classList.contains('hidden')) previewEditor();
           setStatus(source === 'autosave' ? '已自动保存' : '已保存');
         }
         state.lastSavedEditorSignature = editorSignature();
@@ -1707,6 +1707,11 @@ export const memoNoteHtml = `<!doctype html>
         renderAll();
       });
       els.closeEditorBtn.addEventListener('click', () => closeEditor());
+      els.previewToggleBtn.addEventListener('click', () => {
+        const visible = els.editorPreviewPanel?.classList.contains('hidden') ?? false;
+        setEditorPreviewVisible(visible);
+        if (visible) previewEditor();
+      });
       els.deleteNoteBtn.addEventListener('click', () => {
         if (state.editing?.note?.id) {
           removeNote(state.editing.note.id).catch((error) => setStatus(error.message || '删除失败'));
@@ -1718,7 +1723,7 @@ export const memoNoteHtml = `<!doctype html>
         setStatus(state.uploadQueue.length ? '已选择 ' + state.uploadQueue.length + ' 个附件' : '');
       });
       const onEditorInput = () => {
-        previewEditor();
+        if (!els.editorPreviewPanel?.classList.contains('hidden')) previewEditor();
         scheduleAutosave();
       };
       els.noteTitleInput.addEventListener('input', onEditorInput);

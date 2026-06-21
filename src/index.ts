@@ -1,18 +1,13 @@
 import { memoNoteHtml } from './homeHtml';
 import {
 	SESSION_MAX_AGE_SECONDS,
-	clearFailedLogins,
-	cleanupOldLoginRateLimits,
 	createSessionToken,
 	buildSessionCookie,
 	buildClearedSessionCookie,
 	getConfiguredUsername,
-	getLoginRateLimit,
 	getSession,
 	isAuthConfigured,
 	isAuthed,
-	recordFailedLogin,
-	tooManyLoginAttempts,
 	verifyCredentials,
 } from './auth';
 import {
@@ -235,25 +230,13 @@ export default {
 				return json({ ok: false, error: 'server auth not configured' }, 500);
 			}
 
-			const rateLimit = await getLoginRateLimit(request, env);
-			if (rateLimit.limited) {
-				return tooManyLoginAttempts(rateLimit.retryAfterSeconds);
-			}
-
 			const body = await readJsonBody<{ username?: string; password?: string }>(request);
 			const username = body?.username || getConfiguredUsername(env);
 			const password = body?.password || '';
 
 			if (!(await verifyCredentials(env, username, password))) {
-				const failure = await recordFailedLogin(env, rateLimit.key);
-				if (failure.locked) {
-					return tooManyLoginAttempts(failure.retryAfterSeconds);
-				}
 				return unauthorized();
 			}
-
-			await clearFailedLogins(env, rateLimit.key);
-			await cleanupOldLoginRateLimits(env);
 
 			return json(
 				{ ok: true, username: getConfiguredUsername(env) },

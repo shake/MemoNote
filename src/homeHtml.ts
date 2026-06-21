@@ -421,6 +421,12 @@ export const memoNoteHtml = `<!doctype html>
         line-height: 1.2;
         word-break: break-word;
       }
+      .gallery-card .note-title {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+      }
       .note-preview {
         color: color-mix(in srgb, var(--text) 84%, var(--muted));
         white-space: pre-wrap;
@@ -1452,6 +1458,7 @@ export const memoNoteHtml = `<!doctype html>
         const title = document.createElement('h3');
         title.className = 'note-title';
         title.innerHTML = renderHighlightedHtml(note.title || '无标题', query);
+        title.title = note.title || '无标题';
 
         const preview = document.createElement('div');
         preview.className = 'note-preview';

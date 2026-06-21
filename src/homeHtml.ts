@@ -159,10 +159,14 @@ export const memoNoteHtml = `<!doctype html>
         border: 1px dashed var(--border);
       }
       .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         height: 40px;
         border: 0;
         border-radius: 12px;
         padding: 0 14px;
+        text-decoration: none;
         background: linear-gradient(145deg, var(--accent), var(--accent-strong));
         color: #201a0c;
         font-weight: 700;
@@ -187,6 +191,52 @@ export const memoNoteHtml = `<!doctype html>
       .btn.icon {
         width: 40px;
         padding: 0;
+      }
+      .repo-link svg {
+        width: 18px;
+        height: 18px;
+        display: block;
+      }
+      .repo-link {
+        position: relative;
+      }
+      .repo-link::after {
+        content: "喜欢请点个 star";
+        position: absolute;
+        top: calc(100% + 12px);
+        left: 50%;
+        padding: 7px 11px;
+        border-radius: 9px;
+        background: #43b57b;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1;
+        white-space: nowrap;
+        box-shadow: 0 10px 18px rgba(67, 181, 123, 0.22);
+        opacity: 0;
+        transform: translate(-50%, -4px);
+        transition: opacity 0.16s ease, transform 0.16s ease;
+        pointer-events: none;
+      }
+      .repo-link::before {
+        content: "";
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 50%;
+        border: 7px solid transparent;
+        border-bottom-color: #43b57b;
+        opacity: 0;
+        transform: translate(-50%, -4px);
+        transition: opacity 0.16s ease, transform 0.16s ease;
+        pointer-events: none;
+      }
+      .repo-link:hover::after,
+      .repo-link:hover::before,
+      .repo-link:focus-visible::after,
+      .repo-link:focus-visible::before {
+        opacity: 1;
+        transform: translate(-50%, 0);
       }
       .sidebar-toggle {
         flex: 0 0 auto;
@@ -329,8 +379,10 @@ export const memoNoteHtml = `<!doctype html>
       }
       .note-card-inner {
         padding: 14px;
-        display: grid;
+        display: flex;
+        flex-direction: column;
         gap: 10px;
+        height: 100%;
       }
       .note-meta {
         display: flex;
@@ -374,6 +426,15 @@ export const memoNoteHtml = `<!doctype html>
         white-space: pre-wrap;
         word-break: break-word;
         line-height: 1.6;
+        flex: 1 1 auto;
+        min-height: 0;
+      }
+      .gallery-card .note-preview {
+        line-height: 1.45;
+        font-size: 13px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
       }
       .note-preview h1,
       .note-preview h2,
@@ -452,6 +513,16 @@ export const memoNoteHtml = `<!doctype html>
         background: rgba(244, 211, 110, 0.32);
         color: var(--text);
       }
+      .note-footer {
+        margin-top: auto;
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+      }
+      .note-tags {
+        margin-left: auto;
+        justify-content: flex-end;
+      }
       .search-mark {
         background: rgba(244, 211, 110, 0.55);
         color: inherit;
@@ -464,10 +535,6 @@ export const memoNoteHtml = `<!doctype html>
         border: 1px solid var(--border);
         overflow: hidden;
         background: var(--surface-strong);
-      }
-      .gallery-card .attachment-thumb {
-        aspect-ratio: 16 / 10;
-        max-height: 180px;
       }
       .attachment-thumb img {
         display: block;
@@ -777,6 +844,9 @@ export const memoNoteHtml = `<!doctype html>
       .editor-grid.preview-open {
         grid-template-columns: minmax(0, 1fr) 320px;
       }
+      .editor-grid.preview-only {
+        grid-template-columns: 1fr;
+      }
       .editor-panel {
         display: grid;
         gap: 10px;
@@ -821,6 +891,7 @@ export const memoNoteHtml = `<!doctype html>
         }
         .search { width: 100%; }
         .editor-grid.preview-open { grid-template-columns: 1fr; }
+        .editor-grid.preview-only { grid-template-columns: 1fr; }
       }
       @media (max-width: 640px) {
         .main { padding: 10px; }
@@ -902,6 +973,18 @@ export const memoNoteHtml = `<!doctype html>
             <div class="topbar-right">
               <input id="searchInput" class="search" placeholder="搜索标题、正文、标签、附件文件名" />
               <button id="clearSearchBtn" class="btn secondary">清空</button>
+              <a
+                class="btn secondary icon repo-link"
+                href="https://github.com/shake/MemoNote"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="打开项目 GitHub 仓库"
+                title="GitHub"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+                  <path d="M12 .5C5.65.5.5 5.72.5 12.18c0 5.16 3.29 9.54 7.86 11.08.58.11.8-.26.8-.57 0-.28-.01-1.02-.02-2-3.2.71-3.88-1.58-3.88-1.58-.52-1.36-1.27-1.72-1.27-1.72-1.04-.73.08-.72.08-.72 1.15.08 1.75 1.2 1.75 1.2 1.02 1.8 2.67 1.28 3.32.98.1-.76.4-1.28.73-1.57-2.56-.3-5.25-1.32-5.25-5.86 0-1.29.45-2.34 1.18-3.16-.12-.3-.51-1.5.11-3.13 0 0 .96-.31 3.15 1.2a10.5 10.5 0 0 1 5.74 0c2.19-1.51 3.15-1.2 3.15-1.2.62 1.63.23 2.83.11 3.13.73.82 1.18 1.87 1.18 3.16 0 4.55-2.7 5.55-5.27 5.85.41.36.78 1.07.78 2.16 0 1.56-.02 2.81-.02 3.2 0 .31.21.69.81.57A11.79 11.79 0 0 0 23.5 12.18C23.5 5.72 18.35.5 12 .5z"/>
+                </svg>
+              </a>
               <button id="menuBtn" class="btn secondary icon" aria-label="更多操作">⋯</button>
             </div>
           </header>
@@ -928,7 +1011,7 @@ export const memoNoteHtml = `<!doctype html>
         </div>
 
         <div id="editorGrid" class="editor-grid">
-          <div class="editor-panel">
+          <div id="editorContentPanel" class="editor-panel">
             <input id="noteTitleInput" class="input" placeholder="标题" />
             <textarea id="noteContentInput" class="textarea" placeholder="今天记点什么"></textarea>
             <input id="noteTagsInput" class="input" placeholder="标签，用逗号分隔，例如 工作, 截图, 旅行" />
@@ -974,6 +1057,8 @@ export const memoNoteHtml = `<!doctype html>
         sidebarCollapsed: localStorage.getItem('memonote:sidebarCollapsed') === '1',
         query: '',
         editing: null,
+        editorMode: 'edit',
+        editorPreviewVisible: false,
         loading: false,
         error: '',
         statusTimer: null,
@@ -1006,6 +1091,7 @@ export const memoNoteHtml = `<!doctype html>
         status: document.getElementById('status'),
         editorTitle: document.getElementById('editorTitle'),
         editorHint: document.getElementById('editorHint'),
+        editorContentPanel: document.getElementById('editorContentPanel'),
         closeEditorBtn: document.getElementById('closeEditorBtn'),
         previewToggleBtn: document.getElementById('previewToggleBtn'),
         editorGrid: document.getElementById('editorGrid'),
@@ -1048,12 +1134,21 @@ export const memoNoteHtml = `<!doctype html>
         els.sidebarToggleBtn.setAttribute('aria-label', state.sidebarCollapsed ? '显示左侧栏' : '隐藏左侧栏');
       }
 
-      function setEditorPreviewVisible(visible) {
-        if (!els.editorGrid || !els.editorPreviewPanel || !els.previewToggleBtn) return;
-        els.editorGrid.classList.toggle('preview-open', visible);
-        els.editorPreviewPanel.classList.toggle('hidden', !visible);
-        els.previewToggleBtn.textContent = visible ? '隐藏预览' : '预览';
-        els.previewToggleBtn.setAttribute('aria-pressed', visible ? 'true' : 'false');
+      function syncEditorLayout() {
+        if (!els.editorGrid || !els.editorPreviewPanel || !els.previewToggleBtn || !els.editorContentPanel) return;
+        const previewVisible = state.editorMode === 'preview' || state.editorPreviewVisible;
+        els.editorGrid.classList.toggle('preview-only', state.editorMode === 'preview');
+        els.editorGrid.classList.toggle('preview-open', state.editorMode === 'edit' && state.editorPreviewVisible);
+        els.editorContentPanel.classList.toggle('hidden', state.editorMode === 'preview');
+        els.editorPreviewPanel.classList.toggle('hidden', !previewVisible);
+        els.previewToggleBtn.textContent = state.editorMode === 'preview' ? '编辑' : (state.editorPreviewVisible ? '隐藏预览' : '预览');
+        els.previewToggleBtn.setAttribute('aria-pressed', previewVisible ? 'true' : 'false');
+      }
+
+      function setEditorMode(mode) {
+        state.editorMode = mode;
+        state.editorPreviewVisible = mode === 'preview';
+        syncEditorLayout();
       }
 
       function setActiveTag(tag) {
@@ -1307,20 +1402,6 @@ export const memoNoteHtml = `<!doctype html>
         return (note.attachments || []).filter((item) => (item.content_type || '').startsWith('image/'));
       }
 
-      function renderAttachmentChips(note, query = '') {
-        const attachments = note.attachments || [];
-        if (!attachments.length) return '';
-        return attachments.map((attachment) => {
-          const icon = (attachment.content_type || '').startsWith('image/')
-            ? '🖼'
-            : attachment.content_type === 'application/pdf'
-              ? 'PDF'
-              : '📎';
-          const matched = String(query || '').trim() && attachment.filename.toLowerCase().includes(String(query || '').trim().toLowerCase());
-          return '<a class="chip muted' + (matched ? ' search-hit' : '') + '" href="/api/attachments/' + attachment.id + '" target="_blank" rel="noreferrer">' + icon + ' ' + renderHighlightedHtml(attachment.filename, query) + '</a>';
-        }).join('');
-      }
-
       function renderAttachmentsPreview(note) {
         const attachments = note.attachments || [];
         if (!attachments.length) return '';
@@ -1374,21 +1455,22 @@ export const memoNoteHtml = `<!doctype html>
 
         const preview = document.createElement('div');
         preview.className = 'note-preview';
-        const previewText = (note.content || '').trim() ? (note.content || '').replace(/\\s+/g, ' ').slice(0, mode === 'gallery' ? 110 : 180) : '暂无内容。';
-        preview.innerHTML = renderHighlightedHtml(previewText, query);
+        const previewSource = note.content || '';
+        const previewText = previewSource.trim()
+          ? previewSource.split(/\\r?\\n/).find((line) => line.trim()) || ''
+          : '暂无内容。';
+        preview.innerHTML = mode === 'gallery'
+          ? renderMarkdownHtml(previewText)
+          : renderHighlightedHtml(previewText.replace(/\\s+/g, ' ').slice(0, 180), query);
 
         const tags = document.createElement('div');
-        tags.className = 'tag-row';
+        tags.className = 'tag-row note-tags';
         tags.innerHTML = (note.tags || [])
           .map((tag) => {
             const matched = query && tag.toLowerCase().includes(query.toLowerCase());
-            return '<span class="chip' + (matched ? ' search-hit' : '') + '">#' + renderHighlightedHtml(tag, query) + '</span>';
+            return '<span class="chip' + (matched ? ' search-hit' : '') + '">' + renderHighlightedHtml(tag, query) + '</span>';
           })
           .join('');
-
-        const attachmentRow = document.createElement('div');
-        attachmentRow.className = 'attachment-row';
-        attachmentRow.innerHTML = renderAttachmentChips(note, query);
 
         const actions = document.createElement('div');
         actions.className = 'note-actions';
@@ -1396,11 +1478,15 @@ export const memoNoteHtml = `<!doctype html>
         const openBtn = document.createElement('button');
         openBtn.className = 'btn secondary';
         openBtn.textContent = '编辑';
-        openBtn.onclick = () => openEditor(note.id);
+        openBtn.onclick = () => openEditor(note.id, 'edit');
 
         actions.append(openBtn);
-        inner.append(meta, title, preview, tags);
-        if ((note.attachments || []).length) {
+        const footer = document.createElement('div');
+        footer.className = 'note-footer';
+        footer.append(actions, tags);
+
+        inner.append(meta, title, preview, footer);
+        if (mode !== 'gallery' && (note.attachments || []).length) {
           const img = imgAttachments(note)[0];
           if (img) {
             const thumb = document.createElement('div');
@@ -1408,13 +1494,11 @@ export const memoNoteHtml = `<!doctype html>
             thumb.innerHTML = '<img src="/api/attachments/' + img.id + '" alt="' + escapeHtml(img.filename) + '" />';
             inner.append(thumb);
           }
-          inner.append(attachmentRow);
         }
-        inner.append(actions);
         card.append(inner);
         card.addEventListener('click', (event) => {
           if (event.target.closest('button,a,input')) return;
-          openEditor(note.id);
+          openEditor(note.id, 'preview');
         });
         card.addEventListener('contextmenu', (event) => {
           event.preventDefault();
@@ -1445,7 +1529,7 @@ export const memoNoteHtml = `<!doctype html>
           '</button>'
         ).join('');
         els.pinnedNotes.querySelectorAll('[data-note-id]').forEach((button) => {
-          button.addEventListener('click', () => openEditor(button.getAttribute('data-note-id') || ''));
+          button.addEventListener('click', () => openEditor(button.getAttribute('data-note-id') || '', 'preview'));
         });
       }
 
@@ -1454,7 +1538,7 @@ export const memoNoteHtml = `<!doctype html>
         const items = [
           \`<button class="tag-item \${state.activeTag === 'all' ? 'active' : ''}" data-tag="all"><span>全部</span><span>\${state.notes.length}</span></button>\`,
           ...tags.map((tag) =>
-            \`<button class="tag-item \${state.activeTag === tag.label.toLowerCase() ? 'active' : ''}" data-tag="\${escapeHtml(tag.label.toLowerCase())}"><span># \${escapeHtml(tag.label)}</span><span>\${tag.count}</span></button>\`
+            \`<button class="tag-item \${state.activeTag === tag.label.toLowerCase() ? 'active' : ''}" data-tag="\${escapeHtml(tag.label.toLowerCase())}"><span>\${escapeHtml(tag.label)}</span><span>\${tag.count}</span></button>\`
           ),
         ];
         els.tagList.innerHTML = items.join('');
@@ -1583,7 +1667,7 @@ export const memoNoteHtml = `<!doctype html>
         els.previewTitle.textContent = title;
         els.previewCount.textContent = content.replace(/\\s+/g, '').length + ' 字';
         els.previewBody.innerHTML = renderMarkdownHtml(content);
-        els.previewTags.innerHTML = tags.map((tag) => '<span class="chip">#' + escapeHtml(tag) + '</span>').join('');
+        els.previewTags.innerHTML = tags.map((tag) => '<span class="chip">' + escapeHtml(tag) + '</span>').join('');
         if (tags.length === 0) {
           els.previewTags.innerHTML = '<span class="chip muted">无标签</span>';
         }
@@ -1655,7 +1739,7 @@ export const memoNoteHtml = `<!doctype html>
         });
       }
 
-      function openEditor(noteId = null) {
+      function openEditor(noteId = null, mode = 'edit') {
         const note = noteId ? state.notes.find((item) => item.id === noteId) || null : null;
         state.editing = { note: note ? structuredClone(note) : { id: null, title: '', content: '', tags: [], attachments: [] }, isNew: !note };
         state.lastSavedEditorSignature = note
@@ -1676,15 +1760,19 @@ export const memoNoteHtml = `<!doctype html>
         state.uploadQueue = [];
         els.attachmentInput.value = '';
         renderAttachmentSection();
-        setEditorPreviewVisible(false);
+        setEditorMode(note ? mode : 'edit');
         previewEditor();
         els.editorView.classList.remove('hidden');
-        setTimeout(() => els.noteTitleInput.focus(), 0);
+        if (!note || mode === 'edit') {
+          setTimeout(() => els.noteTitleInput.focus(), 0);
+        }
       }
 
       function closeEditor() {
         clearAutosaveTimer();
-        setEditorPreviewVisible(false);
+        state.editorMode = 'edit';
+        state.editorPreviewVisible = false;
+        syncEditorLayout();
         els.editorView.classList.add('hidden');
         state.editing = null;
         state.lastSavedEditorSignature = '';
@@ -1881,7 +1969,7 @@ export const memoNoteHtml = `<!doctype html>
       });
       els.newBtn.addEventListener('click', () => {
         setActiveTag('all');
-        openEditor();
+        openEditor(null, 'edit');
       });
       els.sidebarToggleBtn.addEventListener('click', () => {
         setSidebarCollapsed(!state.sidebarCollapsed);
@@ -1901,9 +1989,14 @@ export const memoNoteHtml = `<!doctype html>
       });
       els.closeEditorBtn.addEventListener('click', () => closeEditor());
       els.previewToggleBtn.addEventListener('click', () => {
-        const visible = els.editorPreviewPanel?.classList.contains('hidden') ?? false;
-        setEditorPreviewVisible(visible);
-        if (visible) previewEditor();
+        if (state.editorMode === 'preview') {
+          setEditorMode('edit');
+          setTimeout(() => els.noteTitleInput.focus(), 0);
+          return;
+        }
+        state.editorPreviewVisible = els.editorPreviewPanel?.classList.contains('hidden') ?? false;
+        syncEditorLayout();
+        if (state.editorPreviewVisible) previewEditor();
       });
       els.deleteNoteBtn.addEventListener('click', () => {
         if (state.editing?.note?.id) {
@@ -1961,7 +2054,7 @@ export const memoNoteHtml = `<!doctype html>
         const command = action.getAttribute('data-action');
         closeNoteMenu();
         if (command === 'open') {
-          openEditor(note.id);
+          openEditor(note.id, 'preview');
           return;
         }
         if (command === 'copy') {
@@ -1980,7 +2073,7 @@ export const memoNoteHtml = `<!doctype html>
         if (event.key === 'Escape' && els.appMenu.classList.contains('open')) closeAppMenu();
         if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'n') {
           event.preventDefault();
-          openEditor();
+          openEditor(null, 'edit');
         }
       });
       document.addEventListener('click', (event) => {
@@ -2004,6 +2097,7 @@ export const memoNoteHtml = `<!doctype html>
 
       setTheme(state.theme);
       setSidebarCollapsed(state.sidebarCollapsed);
+      syncEditorLayout();
       boot().catch(() => {
         els.loginView.classList.remove('hidden');
         els.appShell.classList.add('hidden');

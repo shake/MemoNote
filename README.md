@@ -5,15 +5,33 @@
 当前版本支持：
 
 - 用户名 / 密码登录，默认用户名 `admin`
-- 画廊视图
+- 画廊视图，卡片点击直接进入预览
+- 预览页和编辑页分离，点“编辑”再进入修改模式
+- 卡片正文只显示一行预览
 - 主题切换
 - 标签
+- 右键菜单支持打开、复制内容、删除
+- 置顶笔记会显示在左侧 Pin 区
 - 附件上传
 - 图片内联显示，PDF 和 Office 文件下载
 - 删除笔记时同步删除附件，避免 R2 孤儿对象
 - 按标题、正文、标签、附件文件名搜索
 
 ## 部署
+
+### 一键部署到 Cloudflare
+
+当前仓库地址：
+
+https://github.com/shake/MemoNote
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/shake/MemoNote)
+
+Cloudflare 会根据 `wrangler.jsonc` 自动创建 / 绑定 D1 和 R2，并根据 `.dev.vars.example` 提示填写 `ADMIN_USERNAME`、`ADMIN_PASSWORD` 和 `COOKIE_SECRET`。发布脚本会先执行 D1 migrations，再部署 Worker。
+
+如果你 fork 了这个仓库，把上面的链接改成你自己的 fork 地址即可。
+
+### 手动部署
 
 Cloudflare 会根据 `wrangler.jsonc` 绑定 D1 和 R2。首次部署前，先准备好下面三个变量：
 
@@ -73,3 +91,4 @@ npx wrangler r2 bucket create memonote-attachments
 - 不做回收站
 - 不做附件加密
 - 先保证“能找到、能删掉、能下载”
+- 标签展示不带 `#`，界面更简洁

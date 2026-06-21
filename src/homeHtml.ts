@@ -431,16 +431,19 @@ export const memoNoteHtml = `<!doctype html>
         color: color-mix(in srgb, var(--text) 84%, var(--muted));
         white-space: pre-wrap;
         word-break: break-word;
+        overflow-wrap: anywhere;
         line-height: 1.6;
         flex: 1 1 auto;
         min-height: 0;
       }
       .gallery-card .note-preview {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
         line-height: 1.45;
         font-size: 13px;
         overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
+        white-space: normal;
       }
       .note-preview h1,
       .note-preview h2,

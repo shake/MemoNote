@@ -1002,7 +1002,7 @@ export const memoNoteHtml = `<!doctype html>
         <div class="editor-head">
           <div>
             <h2 id="editorTitle" class="section-title">新建笔记</h2>
-            <div id="editorHint" class="section-desc">内容会自动保存，保存后可以继续上传图片、PDF 和 Office 文件。</div>
+            <div id="editorHint" class="section-desc">内容会自动保存，可以继续上传图片、PDF 和 Office 文件。</div>
           </div>
           <div class="topbar-right">
             <button id="previewToggleBtn" class="btn secondary">预览</button>
@@ -1752,7 +1752,7 @@ export const memoNoteHtml = `<!doctype html>
           : '';
         clearAutosaveTimer();
         els.editorTitle.textContent = note ? '编辑笔记' : '新建笔记';
-        els.editorHint.textContent = note ? '修改内容、标签和附件，内容会自动保存。' : '内容会自动保存，保存后再添加附件。';
+        els.editorHint.textContent = note ? '修改内容、标签和附件，内容会自动保存。' : '内容会自动保存，可以继续添加附件。';
         els.noteTitleInput.value = note?.title || '';
         els.noteContentInput.value = note?.content || '';
         els.noteTagsInput.value = (note?.tags || []).join(', ');

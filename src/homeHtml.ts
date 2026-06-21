@@ -934,7 +934,7 @@ export const memoNoteHtml = `<!doctype html>
               </div>
               <div class="right">
                 <input id="attachmentInput" type="file" multiple class="hidden" />
-                <button id="pickAttachmentBtn" class="btn secondary">添加附件</button>
+                <button id="pickAttachmentBtn" type="button" class="btn secondary">添加附件</button>
               </div>
             </div>
             <div id="attachmentSection" class="attachment-list"></div>
@@ -1908,7 +1908,12 @@ export const memoNoteHtml = `<!doctype html>
       els.pickAttachmentBtn.addEventListener('click', () => els.attachmentInput.click());
       els.attachmentInput.addEventListener('change', () => {
         state.uploadQueue = Array.from(els.attachmentInput.files || []);
-        setStatus(state.uploadQueue.length ? '已选择 ' + state.uploadQueue.length + ' 个附件' : '');
+        if (!state.uploadQueue.length) {
+          setStatus('');
+          return;
+        }
+        setStatus('已选择 ' + state.uploadQueue.length + ' 个附件，正在上传...');
+        saveEditor({ source: 'autosave' }).catch((error) => setStatus(error.message || '附件上传失败'));
       });
       const onEditorInput = () => {
         if (!els.editorPreviewPanel?.classList.contains('hidden')) previewEditor();

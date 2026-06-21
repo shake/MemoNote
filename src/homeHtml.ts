@@ -375,6 +375,60 @@ export const memoNoteHtml = `<!doctype html>
         word-break: break-word;
         line-height: 1.6;
       }
+      .note-preview h1,
+      .note-preview h2,
+      .note-preview h3,
+      .note-preview h4,
+      .note-preview h5,
+      .note-preview h6 {
+        margin: 0.9em 0 0.5em;
+        line-height: 1.2;
+      }
+      .note-preview h1 { font-size: 1.55em; }
+      .note-preview h2 { font-size: 1.35em; }
+      .note-preview h3 { font-size: 1.18em; }
+      .note-preview h4 { font-size: 1.05em; }
+      .note-preview p {
+        margin: 0 0 0.7em;
+      }
+      .note-preview blockquote {
+        margin: 0.8em 0;
+        padding: 0.15em 0 0.15em 0.9em;
+        border-left: 3px solid rgba(244, 211, 110, 0.7);
+        color: var(--muted);
+      }
+      .note-preview ul,
+      .note-preview ol {
+        margin: 0.7em 0;
+        padding-left: 1.35em;
+      }
+      .note-preview li {
+        margin: 0.2em 0;
+      }
+      .note-preview pre {
+        margin: 0.9em 0;
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--surface-soft) 82%, #000 18%);
+        overflow: auto;
+        white-space: pre;
+      }
+      .note-preview code {
+        padding: 0.15em 0.35em;
+        border-radius: 6px;
+        background: color-mix(in srgb, var(--surface-soft) 80%, #000 12%);
+        font-family: ui-monospace, SFMono-Regular, SF Mono, Consolas, "Liberation Mono", monospace;
+        font-size: 0.95em;
+      }
+      .note-preview pre code {
+        padding: 0;
+        background: transparent;
+      }
+      .note-preview a {
+        color: var(--accent-strong);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
       .tag-row, .attachment-row {
         display: flex;
         flex-wrap: wrap;
@@ -1059,6 +1113,129 @@ export const memoNoteHtml = `<!doctype html>
         return output;
       }
 
+      function renderMarkdownInline(text) {
+        const stash = [];
+        let output = escapeHtml(String(text || ''));
+
+        function hold(html) {
+          stash.push(html);
+          return '\u0000' + (stash.length - 1) + '\u0000';
+        }
+
+        output = output.replace(/\x60([^\x60]+)\x60/g, (_, code) => hold('<code>' + code + '</code>'));
+        output = output.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, label, href) => {
+          return hold('<a href="' + escapeHtml(href) + '" target="_blank" rel="noreferrer">' + label + '</a>');
+        });
+        output = output.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        output = output.replace(/__(.+?)__/g, '<strong>$1</strong>');
+        output = output.replace(/(^|[^*])\*(?!\s)([^*]+?)\*(?!\*)/g, '$1<em>$2</em>');
+        output = output.replace(/(^|[^_])_(?!\s)([^_]+?)_(?!_)/g, '$1<em>$2</em>');
+
+        return output.replace(/\u0000(\d+)\u0000/g, (_, index) => stash[Number(index)] || '');
+      }
+
+      function renderMarkdownHtml(text) {
+        const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
+        const codeFence = '\x60\x60\x60';
+        const blocks = [];
+        let paragraph = [];
+        let listType = '';
+        let codeLines = null;
+
+        function flushParagraph() {
+          if (!paragraph.length) return;
+          blocks.push('<p>' + paragraph.map((line) => renderMarkdownInline(line)).join('<br />') + '</p>');
+          paragraph = [];
+        }
+
+        function flushList() {
+          if (!listType) return;
+          blocks.push('</' + listType + '>');
+          listType = '';
+        }
+
+        function flushCode() {
+          if (codeLines === null) return;
+          blocks.push('<pre><code>' + escapeHtml(codeLines.join('\n')) + '</code></pre>');
+          codeLines = null;
+        }
+
+        for (const line of lines) {
+          if (codeLines) {
+            if (line.trim().startsWith(codeFence)) {
+              flushCode();
+            } else {
+              codeLines.push(line);
+            }
+            continue;
+          }
+
+          const trimmed = line.trim();
+          if (!trimmed) {
+            flushParagraph();
+            flushList();
+            continue;
+          }
+
+          if (trimmed.startsWith(codeFence)) {
+            flushParagraph();
+            flushList();
+            codeLines = [];
+            continue;
+          }
+
+          const headingMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
+          if (headingMatch) {
+            flushParagraph();
+            flushList();
+            const level = headingMatch[1].length;
+            blocks.push('<h' + level + '>' + renderMarkdownInline(headingMatch[2]) + '</h' + level + '>');
+            continue;
+          }
+
+          const quoteMatch = trimmed.match(/^>\s?(.*)$/);
+          if (quoteMatch) {
+            flushParagraph();
+            flushList();
+            blocks.push('<blockquote><p>' + renderMarkdownInline(quoteMatch[1]) + '</p></blockquote>');
+            continue;
+          }
+
+          const unorderedMatch = trimmed.match(/^[-*+]\s+(.*)$/);
+          if (unorderedMatch) {
+            flushParagraph();
+            if (listType !== 'ul') {
+              flushList();
+              blocks.push('<ul>');
+              listType = 'ul';
+            }
+            blocks.push('<li>' + renderMarkdownInline(unorderedMatch[1]) + '</li>');
+            continue;
+          }
+
+          const orderedMatch = trimmed.match(/^\d+\.\s+(.*)$/);
+          if (orderedMatch) {
+            flushParagraph();
+            if (listType !== 'ol') {
+              flushList();
+              blocks.push('<ol>');
+              listType = 'ol';
+            }
+            blocks.push('<li>' + renderMarkdownInline(orderedMatch[1]) + '</li>');
+            continue;
+          }
+
+          flushList();
+          paragraph.push(line);
+        }
+
+        flushParagraph();
+        flushList();
+        flushCode();
+
+        return blocks.join('') || '<p>暂无正文。</p>';
+      }
+
       function setError(message) {
         state.error = String(message || '');
         if (!state.error) {
@@ -1389,7 +1566,7 @@ export const memoNoteHtml = `<!doctype html>
         const tags = normalizeList(els.noteTagsInput.value);
         els.previewTitle.textContent = title;
         els.previewCount.textContent = content.replace(/\\s+/g, '').length + ' 字';
-        els.previewBody.textContent = content || '暂无正文。';
+        els.previewBody.innerHTML = renderMarkdownHtml(content);
         els.previewTags.innerHTML = tags.map((tag) => '<span class="chip">#' + escapeHtml(tag) + '</span>').join('');
         if (tags.length === 0) {
           els.previewTags.innerHTML = '<span class="chip muted">无标签</span>';

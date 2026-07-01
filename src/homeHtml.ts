@@ -527,10 +527,22 @@ export const memoNoteHtml = `<!doctype html>
         display: flex;
         align-items: flex-end;
         gap: 8px;
+        min-width: 0;
       }
       .note-tags {
+        flex: 1 1 auto;
         margin-left: auto;
+        min-width: 0;
         justify-content: flex-end;
+        align-content: flex-end;
+        max-height: 56px;
+        overflow: hidden;
+      }
+      .note-tags .chip {
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .search-mark {
         background: rgba(244, 211, 110, 0.55);
@@ -728,7 +740,8 @@ export const memoNoteHtml = `<!doctype html>
       .textarea {
         min-height: 220px;
         padding: 14px;
-        resize: vertical;
+        resize: none;
+        overflow: auto;
       }
       .status {
         position: fixed;
@@ -788,18 +801,23 @@ export const memoNoteHtml = `<!doctype html>
         display: grid;
         place-items: center;
         padding: 18px;
+        overflow: hidden;
       }
       .editor-card {
         width: min(1040px, 100%);
-        max-height: min(94vh, 980px);
-        overflow: auto;
+        height: min(94vh, 980px);
+        overflow: hidden;
         border: 1px solid var(--border);
         border-radius: 28px;
         background: var(--surface-strong);
         box-shadow: var(--shadow);
         padding: 18px;
+        display: flex;
+        flex-direction: column;
+        overscroll-behavior: contain;
       }
       .editor-head {
+        flex: 0 0 auto;
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
@@ -807,6 +825,8 @@ export const memoNoteHtml = `<!doctype html>
         margin-bottom: 14px;
       }
       .editor-grid {
+        flex: 1 1 auto;
+        min-height: 0;
         display: grid;
         gap: 12px;
         grid-template-columns: 1fr;
@@ -857,6 +877,9 @@ export const memoNoteHtml = `<!doctype html>
         grid-template-columns: 1fr;
       }
       .editor-panel {
+        min-height: 0;
+        overflow: auto;
+        overscroll-behavior: contain;
         display: grid;
         gap: 10px;
       }
@@ -878,6 +901,15 @@ export const memoNoteHtml = `<!doctype html>
       .app-shell.hidden { display: none; }
       .shell.sidebar-collapsed .main {
         padding-left: 12px;
+      }
+      html.scroll-locked,
+      body.scroll-locked {
+        overflow: hidden;
+      }
+      body.scroll-locked {
+        position: fixed;
+        inset: 0;
+        width: 100%;
       }
       @media (max-width: 980px) {
         .shell { grid-template-columns: 1fr; }
@@ -1075,6 +1107,8 @@ export const memoNoteHtml = `<!doctype html>
         noteMenu: null,
         autosaveTimer: null,
         lastSavedEditorSignature: '',
+        pageScrollY: 0,
+        pageScrollLocked: false,
       };
 
       const els = {
@@ -1705,6 +1739,24 @@ export const memoNoteHtml = `<!doctype html>
         }
       }
 
+      function lockPageScroll() {
+        if (state.pageScrollLocked) return;
+        state.pageScrollLocked = true;
+        state.pageScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+        document.documentElement.classList.add('scroll-locked');
+        document.body.classList.add('scroll-locked');
+        document.body.style.top = '-' + state.pageScrollY + 'px';
+      }
+
+      function unlockPageScroll() {
+        if (!state.pageScrollLocked) return;
+        state.pageScrollLocked = false;
+        document.documentElement.classList.remove('scroll-locked');
+        document.body.classList.remove('scroll-locked');
+        document.body.style.top = '';
+        window.scrollTo(0, state.pageScrollY);
+      }
+
       function scheduleAutosave() {
         if (!state.editing || els.editorView.classList.contains('hidden')) return;
         clearAutosaveTimer();
@@ -1771,6 +1823,7 @@ export const memoNoteHtml = `<!doctype html>
         els.attachmentInput.value = '';
         renderAttachmentSection();
         setEditorMode(note ? mode : 'edit');
+        lockPageScroll();
         previewEditor();
         els.editorView.classList.remove('hidden');
         if (!note || mode === 'edit') {
@@ -1784,6 +1837,7 @@ export const memoNoteHtml = `<!doctype html>
         state.editorPreviewVisible = false;
         syncEditorLayout();
         els.editorView.classList.add('hidden');
+        unlockPageScroll();
         state.editing = null;
         state.lastSavedEditorSignature = '';
       }
